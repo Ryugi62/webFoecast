@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
-    <canvas id="drawCanvas" width="1224" height="768" @mousedown="mosueDownCanvas($event)"
-      @mousemove="mouseOverCanvas($event)" @mouseup="mouseUpCanvas()"></canvas>
+    <canvas id="drawCanvas" width="1224" height="768" @click="clickedCanvas($event)"
+      @mousemove="mouseOverCanvas($event)"></canvas>
     <div class="modeBox">
       <div class="lineModeBox" :class="{ online: mode === 'line' }" @click="changeMode('line')">line</div>
       <div class="curveModeBox" :class="{ online: mode === 'curve' }" @click="changeMode('curve')">curve</div>
@@ -19,6 +19,7 @@ export default {
       mode: "line",
       canvas: null,
       isDraw: false,
+      lineSave: [],
       startPosition: {
         x: 0,
         y: 0
@@ -27,7 +28,6 @@ export default {
         x: 0,
         y: 0
       },
-      lineSave: []
     }
   },
 
@@ -37,7 +37,6 @@ export default {
 
   methods: {
     init() {
-      console.log(new Date(), "HelloWorld is mounted");
       this.createCanvas()
     },
 
@@ -59,21 +58,28 @@ export default {
       }
     },
 
-    mosueDownCanvas(event) {
-      this.isDraw = true;
-      this.startPosition.x = event.layerX;
-      this.startPosition.y = event.layerY;
+    clickedCanvas(event) {
+      if (this.isDraw) {
+        const line = { startX: this.startPosition.x, startY: this.startPosition.y, endX: this.endPosition.x, endY: this.endPosition.y }
+        this.lineSave.push(line)
+      } else {
+        this.startPosition.x = event.layerX
+        this.startPosition.y = event.layerY
+      }
+
+      this.isDraw = !this.isDraw
     },
 
-    async mouseOverCanvas(event) {
+    mouseOverCanvas(event) {
       if (this.isDraw) {
-        this.endPosition.x = event.layerX
-        this.endPosition.y = event.layerY
 
         switch (this.mode) {
           case "line":
+            this.endPosition.x = event.layerX
+            this.endPosition.y = event.layerY
+
             this.clearCanvas();
-            await this.drawBgImage();
+            this.drawBgImage();
             this.getBeforeLine();
             this.drawLine(this.startPosition.x, this.startPosition.y, this.endPosition.x, this.endPosition.y)
             break;
@@ -105,15 +111,6 @@ export default {
       ctx.lineTo(endX, endY);
       ctx.stroke();
       ctx.closePath();
-    },
-
-    mouseUpCanvas() {
-      const line = { startX: this.startPosition.x, startY: this.startPosition.y, endX: this.endPosition.x, endY: this.endPosition.y }
-
-      this.lineSave.push(line)
-      this.isDraw = false
-
-      console.log(this.lineSave);
     },
 
     changeMode(mode) {
