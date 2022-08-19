@@ -69,10 +69,6 @@ export default {
       this.canvas.height = 700;
       this.canvas.style.border = "1px solid black";
 
-      this.drawBgImage();
-    },
-
-    drawBgImage() {
       const ctx = this.canvas.getContext("2d");
       const background = new Image();
       background.src =
@@ -96,25 +92,32 @@ export default {
         this.startPosition.y = event.layerY;
       }
 
-      this.isDraw = !this.isDraw;
+      if (this.mode === "line") this.isDraw = !this.isDraw;
     },
 
     mouseOverCanvas(event) {
       if (this.isDraw) {
+        const ctx = this.canvas.getContext("2d");
+        const background = new Image();
+
         switch (this.mode) {
           case "line":
             this.endPosition.x = event.layerX;
             this.endPosition.y = event.layerY;
 
-            this.clearCanvas();
-            this.drawBgImage();
-            this.getBeforeLine();
-            this.drawLine(
-              this.startPosition.x,
-              this.startPosition.y,
-              this.endPosition.x,
-              this.endPosition.y
-            );
+            background.src =
+              "https://contents.creators.mypetlife.co.kr/content/uploads/2020/06/20005826/1838_3986_3444.jpg";
+            background.onload = () => {
+              ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+              ctx.drawImage(background, 150, 0);
+              this.getBeforeLine();
+              this.drawLine(
+                this.startPosition.x,
+                this.startPosition.y,
+                this.endPosition.x,
+                this.endPosition.y
+              );
+            };
             break;
           case "curve":
             break;
@@ -124,11 +127,7 @@ export default {
       }
     },
 
-    clearCanvas() {
-      this.canvas
-        .getContext("2d")
-        .clearRect(0, 0, this.canvas.width, this.canvas.height);
-    },
+    clearCanvas() {},
 
     getBeforeLine() {
       this.lineSave.forEach((line) => {
@@ -156,10 +155,6 @@ export default {
 <style scoped>
 .hello {
   display: flex;
-}
-
-canvas {
-  margin: auto;
 }
 
 .modeBox *:hover {
