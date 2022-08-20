@@ -5,6 +5,7 @@
       width="1224"
       height="768"
       @click="clickedCanvas($event)"
+      @dblclick="dblClickedCanavs($event)"
       @mousemove="mouseOverCanvas($event)"
     ></canvas>
     <div class="modeBox">
@@ -42,7 +43,6 @@ export default {
       mode: "line",
       canvas: null,
       isDraw: false,
-      lineSave: [],
       startPosition: {
         x: 0,
         y: 0,
@@ -51,6 +51,9 @@ export default {
         x: 0,
         y: 0,
       },
+      stickLineSave: [],
+      curvedLineSave: [],
+      curvedPosition: [],
     };
   },
 
@@ -79,20 +82,56 @@ export default {
     },
 
     clickedCanvas(event) {
-      if (this.isDraw) {
-        const line = {
-          startX: this.startPosition.x,
-          startY: this.startPosition.y,
-          endX: this.endPosition.x,
-          endY: this.endPosition.y,
-        };
-        this.lineSave.push(line);
-      } else {
-        this.startPosition.x = event.layerX;
-        this.startPosition.y = event.layerY;
+      switch (this.mode) {
+        case "line":
+          if (this.isDraw) {
+            const line = {
+              startX: this.startPosition.x,
+              startY: this.startPosition.y,
+              endX: this.endPosition.x,
+              endY: this.endPosition.y,
+            };
+            this.stickLineSave.push(line);
+          } else {
+            this.startPosition.x = event.layerX;
+            this.startPosition.y = event.layerY;
+          }
+          this.isDraw = !this.isDraw;
+          break;
+        case "curve":
+          if (this.isDraw) {
+            this.curvedPosition.push({ x: event.layerX, y: event.layerY });
+          } else {
+            this.startPosition.x = event.layerX;
+            this.startPosition.y = event.layerY;
+            this.isDraw = true;
+          }
+          break;
+        case "text":
+          break;
       }
+    },
 
-      if (this.mode === "line") this.isDraw = !this.isDraw;
+    dblClickedCanavs(event) {
+      event;
+      const line = {
+        startX: this.startPosition.x,
+        startY: this.startPosition.y,
+        endX: this.endPosition.x,
+        endY: this.endPosition.y,
+        curvedArr: this.curvedPosition,
+      };
+      switch (this.mode) {
+        case "line":
+          break;
+        case "curve":
+          this.curvedLineSave.push(line);
+          this.isDraw = false;
+          this.curvedPosition = [];
+          break;
+        case "text":
+          break;
+      }
     },
 
     mouseOverCanvas(event) {
@@ -100,47 +139,82 @@ export default {
         const ctx = this.canvas.getContext("2d");
         const background = new Image();
 
-        switch (this.mode) {
-          case "line":
-            this.endPosition.x = event.layerX;
-            this.endPosition.y = event.layerY;
-
-            background.src =
-              "https://contents.creators.mypetlife.co.kr/content/uploads/2020/06/20005826/1838_3986_3444.jpg";
-            background.onload = () => {
-              ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-              ctx.drawImage(background, 150, 0);
-              this.getBeforeLine();
-              this.drawLine(
+        this.endPosition.x = event.layerX;
+        this.endPosition.y = event.layerY;
+        background.src =
+          "https://contents.creators.mypetlife.co.kr/content/uploads/2020/06/20005826/1838_3986_3444.jpg";
+        background.onload = () => {
+          ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          ctx.drawImage(background, 150, 0);
+          switch (this.mode) {
+            case "line":
+              this.stickLineSave.forEach((line) => {
+                this.drawStickLine(
+                  line.startX,
+                  line.startY,
+                  line.endX,
+                  line.endY
+                );
+              });
+              this.drawStickLine(
                 this.startPosition.x,
                 this.startPosition.y,
                 this.endPosition.x,
                 this.endPosition.y
               );
-            };
-            break;
-          case "curve":
-            break;
-          case "text":
-            break;
-        }
+              break;
+            case "curve":
+              this.curvedLineSave.forEach((line) => {
+                this.drawCurvedLine(
+                  line.startX,
+                  line.startY,
+                  line.endX,
+                  line.endY,
+                  line.curvedArr
+                );
+              });
+              this.drawCurvedLine(
+                this.startPosition.x,
+                this.startPosition.y,
+                this.endPosition.x,
+                this.endPosition.y,
+                this.curvedPosition
+              );
+              break;
+            case "text":
+              break;
+          }
+        };
       }
     },
 
-    clearCanvas() {},
-
-    getBeforeLine() {
-      this.lineSave.forEach((line) => {
-        this.drawLine(line.startX, line.startY, line.endX, line.endY);
-      });
-    },
-
-    drawLine(startX, startY, endX, endY) {
+    drawStickLine(startX, startY, endX, endY) {
       const ctx = this.canvas.getContext("2d");
 
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.closePath();
+    },
+
+    drawCurvedLine(startX, startY, endX, endY, curvedArr) {
+      let i = 0;
+      const points = curvedArr;
+      const ctx = this.canvas.getContext("2d");
+
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      if (points[i]) {
+        for (i = 0; i < curvedArr.length - 1; i++) {
+          var xc = (points[i].x + points[i + 1].x) / 2;
+          var yc = (points[i].y + points[i + 1].y) / 2;
+          ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+        ctx.quadraticCurveTo(points[i].x, points[i].y, endX, endY);
+      } else {
+        ctx.quadraticCurveTo(startX, startY, endX, endY);
+      }
       ctx.stroke();
       ctx.closePath();
     },
